@@ -1,0 +1,66 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-random
+  namespace: work
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-random
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-random
+    spec:
+      volumes:
+        - name: grok
+          persistentVolumeClaim:
+            claimName: grok-pvc
+        - name: grok-config
+          configMap:
+            name: grok-config
+            defaultMode: 420
+      containers:
+        - name: {{ .Release.Name }}-random
+          image: debian
+          command: ["bash", "-c", "while :; do echo $RANDOM >> /var/log/random.log && sleep 5; done"]
+          resources:
+            limits:
+              cpu: 20m
+              memory: 20M
+            requests:
+              cpu: 10m
+              memory: 10M
+          volumeMounts:
+            - name: grok-pvc
+              mountPath: /var/log
+        - name: grok
+          image: palobo/grok_exporter
+          command: ["bash", "-c", "./grok_exporter -config /etc/grok_exporter/config.yml"]
+          ports:
+            - name: grok
+              containerPort: 9144
+          resources:
+            limits:
+              cpu: 20m
+              memory: 20M
+            requests:
+              cpu: 10m
+              memory: 10M
+          volumeMounts:
+            - name: grok-pvc
+              mountPath: /var/log
+            - name: grok-config-volume
+              mountPath: /etc/grok_exporter
+      
+      volumes:
+      - name: grok-config-volume
+        configMap:
+            defaultMode: 420
+            name: grok-config
+
+      - name: grok-pvc-volume
+        persistentVolumeClaim:
+            claimName: grok-pvc

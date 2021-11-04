@@ -1,0 +1,25 @@
+apiVersion: v1
+data:
+  config.yaml: |
+      global:
+          config_version: 2
+      input:
+          type: file
+          path: /var/log/random.log
+          readall: true
+      grok:
+         patterns_dir: ./patterns    
+      metrics:
+          - type: counter
+            name: value_counter
+            match: "value=\"%{N}\""
+            labels:
+               value    : '{{.value}}'
+
+      server:
+          port: 9090
+
+kind: ConfigMap
+metadata:
+  name: grok-config
+  namespace: work
